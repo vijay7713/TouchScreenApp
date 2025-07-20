@@ -29,6 +29,12 @@ public class FeedbackData
     public int starRating;
 }
 
+[System.Serializable]
+public class FeedbackList
+{
+    public List<FeedbackData> feedbacks = new List<FeedbackData>();
+}
+
 public class UIManager : MonoBehaviour
 {
     [Header("Panels")]
@@ -59,7 +65,7 @@ public class UIManager : MonoBehaviour
     public TMP_Text emailError;
 
     [Header("Feedback Stars")]
-    public Button[] starButtons; // Assign 5 star buttons
+    public Button[] starButtons;
     private int selectedRating = 0;
 
     void Start()
@@ -71,7 +77,6 @@ public class UIManager : MonoBehaviour
     private void OnVideoFinished(VideoPlayer vp)
     {
         videoPlayer.Stop();
-
         RenderTexture rt = videoPlayer.targetTexture;
         if (rt != null)
         {
@@ -79,12 +84,7 @@ public class UIManager : MonoBehaviour
             GL.Clear(true, true, Color.black);
             RenderTexture.active = null;
         }
-
-        if (videoDisplay != null)
-        {
-            videoDisplay.enabled = false;
-        }
-
+        if (videoDisplay != null) videoDisplay.enabled = false;
         ShowVideoSelectionPanel();
     }
 
@@ -101,6 +101,25 @@ public class UIManager : MonoBehaviour
         designationError.text = "";
         phoneError.text = "";
         emailError.text = "";
+    }
+
+    private void ClearFeedbackRating()
+    {
+        selectedRating = 0;
+        foreach (Button star in starButtons)
+        {
+            star.GetComponent<Image>().color = Color.white;
+        }
+    }
+
+    private void SetAllPanelsInactive()
+    {
+        homePanel.SetActive(false);
+        videoSelectionPanel.SetActive(false);
+        formPanel.SetActive(false);
+        thankYouPanel.SetActive(false);
+        areYouReadyPanel.SetActive(false);
+        feedbackPanel.SetActive(false);
     }
 
     public void ShowHomePanel()
@@ -140,57 +159,29 @@ public class UIManager : MonoBehaviour
     public void ShowFeedbackPanel()
     {
         SetAllPanelsInactive();
+        ClearFeedbackRating();
         feedbackPanel.SetActive(true);
     }
 
-    private void SetAllPanelsInactive()
-    {
-        homePanel.SetActive(false);
-        videoSelectionPanel.SetActive(false);
-        formPanel.SetActive(false);
-        thankYouPanel.SetActive(false);
-        areYouReadyPanel.SetActive(false);
-        feedbackPanel.SetActive(false);
-    }
+    public void OnHomeButton_Click() => ShowHomePanel();
 
-    public void OnHomeButton_Click()
-    {
-        ShowHomePanel();
-    }
-
-    public void OnExploreButton_Click()
-    {
-        ShowVideoSelectionPanel();
-    }
+    public void OnExploreButton_Click() => ShowVideoSelectionPanel();
 
     public void OnVideoButton_Click(int index)
     {
         if (index >= 0 && index < videoClips.Length)
         {
-            if (videoDisplay != null)
-            {
-                videoDisplay.enabled = true;
-            }
-
+            if (videoDisplay != null) videoDisplay.enabled = true;
             videoPlayer.clip = videoClips[index];
             videoPlayer.Play();
         }
     }
 
-    public void OnGetInTouch_Click()
-    {
-        ShowAreYouReadyPanel();
-    }
+    public void OnGetInTouch_Click() => ShowAreYouReadyPanel();
 
-    public void OnYesLetsDoItNow_Click()
-    {
-        ShowFormPanel();
-    }
+    public void OnYesLetsDoItNow_Click() => ShowFormPanel();
 
-    public void OnMaybeLater_Click()
-    {
-        ShowFeedbackPanel();
-    }
+    public void OnMaybeLater_Click() => ShowFeedbackPanel();
 
     public void OnSubmitForm_Click()
     {
@@ -205,10 +196,7 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    public void OnThankYouHome_Click()
-    {
-        ShowHomePanel();
-    }
+    public void OnThankYouHome_Click() => ShowHomePanel();
 
     private bool ValidateForm()
     {
@@ -220,11 +208,7 @@ public class UIManager : MonoBehaviour
         string phone = phoneField.text.Trim();
         string email = emailField.text.Trim();
 
-        nameError.text = "";
-        companyError.text = "";
-        designationError.text = "";
-        phoneError.text = "";
-        emailError.text = "";
+        nameError.text = companyError.text = designationError.text = phoneError.text = emailError.text = "";
 
         Color errorColor = Color.red;
 
@@ -274,10 +258,7 @@ public class UIManager : MonoBehaviour
     private IEnumerator ClearTextAfterDelay(TMP_Text errorField)
     {
         yield return new WaitForSeconds(2f);
-        if (errorField != null)
-        {
-            errorField.text = "";
-        }
+        if (errorField != null) errorField.text = "";
     }
 
     private void SaveFormData()
@@ -302,38 +283,48 @@ public class UIManager : MonoBehaviour
 
         dataList.forms.Add(newData);
         string json = JsonUtility.ToJson(dataList, true);
-
-#if UNITY_EDITOR
         File.WriteAllText(path, json);
         Debug.Log("Form data saved to: " + path);
-#else
-        string fallback = Path.Combine(Application.persistentDataPath, "formdata.json");
-        File.WriteAllText(fallback, json);
-        Debug.Log("Form data saved to (mobile): " + fallback);
-#endif
     }
 
-    // ⭐ Save Star Rating
     public void OnStarClicked(int rating)
     {
         selectedRating = rating;
 
-        // Highlight selected stars
         for (int i = 0; i < starButtons.Length; i++)
         {
-            Color color = (i < rating) ? Color.yellow : Color.white;
+            Color color = (i < selectedRating) ? Color.yellow : Color.white;
             starButtons[i].GetComponent<Image>().color = color;
         }
+    }
 
-        SaveFeedbackRating(rating);
+    public void OnSubmitFeedback_Click()
+    {
+        if (selectedRating < 1 || selectedRating > 5)
+        {
+            Debug.LogWarning("Please select a rating from 1 to 5.");
+            return;
+        }
+
+        SaveFeedbackRating(selectedRating);
+        ShowThankYouPanel();
     }
 
     private void SaveFeedbackRating(int rating)
     {
-        FeedbackData data = new FeedbackData { starRating = rating };
+        FeedbackData newFeedback = new FeedbackData { starRating = rating };
         string path = Path.Combine(Application.streamingAssetsPath, "feedback.json");
-        string json = JsonUtility.ToJson(data, true);
+        FeedbackList list = new FeedbackList();
+
+        if (File.Exists(path))
+        {
+            string existing = File.ReadAllText(path);
+            list = JsonUtility.FromJson<FeedbackList>(existing);
+        }
+
+        list.feedbacks.Add(newFeedback);
+        string json = JsonUtility.ToJson(list, true);
         File.WriteAllText(path, json);
-        Debug.Log("⭐ Feedback saved: " + rating + " stars");
+        Debug.Log("⭐ Feedback saved: " + rating + " stars → " + path);
     }
 }
