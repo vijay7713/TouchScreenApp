@@ -72,6 +72,7 @@ public class UIManager : MonoBehaviour
     {
         ShowHomePanel();
         videoPlayer.loopPointReached += OnVideoFinished;
+        if (videoDisplay != null) videoDisplay.enabled = false; // Ensure hidden at start
     }
 
     private void OnVideoFinished(VideoPlayer vp)
@@ -84,7 +85,7 @@ public class UIManager : MonoBehaviour
             GL.Clear(true, true, Color.black);
             RenderTexture.active = null;
         }
-        if (videoDisplay != null) videoDisplay.enabled = false;
+        if (videoDisplay != null) videoDisplay.enabled = false; // Hide after finish
         ShowVideoSelectionPanel();
     }
 
@@ -127,6 +128,7 @@ public class UIManager : MonoBehaviour
         SetAllPanelsInactive();
         homePanel.SetActive(true);
         videoPlayer.Stop();
+        if (videoDisplay != null) videoDisplay.enabled = false;
     }
 
     public void ShowVideoSelectionPanel()
@@ -134,6 +136,7 @@ public class UIManager : MonoBehaviour
         SetAllPanelsInactive();
         videoSelectionPanel.SetActive(true);
         videoPlayer.Stop();
+        if (videoDisplay != null) videoDisplay.enabled = false;
     }
 
     public void ShowFormPanel()
@@ -142,18 +145,21 @@ public class UIManager : MonoBehaviour
         ClearFormFields();
         formPanel.SetActive(true);
         videoPlayer.Stop();
+        if (videoDisplay != null) videoDisplay.enabled = false;
     }
 
     public void ShowThankYouPanel()
     {
         SetAllPanelsInactive();
         thankYouPanel.SetActive(true);
+        if (videoDisplay != null) videoDisplay.enabled = false;
     }
 
     public void ShowAreYouReadyPanel()
     {
         SetAllPanelsInactive();
         areYouReadyPanel.SetActive(true);
+        if (videoDisplay != null) videoDisplay.enabled = false;
     }
 
     public void ShowFeedbackPanel()
@@ -161,6 +167,7 @@ public class UIManager : MonoBehaviour
         SetAllPanelsInactive();
         ClearFeedbackRating();
         feedbackPanel.SetActive(true);
+        if (videoDisplay != null) videoDisplay.enabled = false;
     }
 
     public void OnHomeButton_Click() => ShowHomePanel();
