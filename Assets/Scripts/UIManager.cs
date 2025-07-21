@@ -6,6 +6,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.Networking;
 
 [System.Serializable]
 public class FormData
@@ -15,24 +16,6 @@ public class FormData
     public string designation;
     public string phoneNumber;
     public string email;
-}
-
-[System.Serializable]
-public class FormDataList
-{
-    public List<FormData> forms = new List<FormData>();
-}
-
-[System.Serializable]
-public class FeedbackData
-{
-    public int starRating;
-}
-
-[System.Serializable]
-public class FeedbackList
-{
-    public List<FeedbackData> feedbacks = new List<FeedbackData>();
 }
 
 public class UIManager : MonoBehaviour
@@ -49,6 +32,7 @@ public class UIManager : MonoBehaviour
     public VideoPlayer videoPlayer;
     public VideoClip[] videoClips;
     public RawImage videoDisplay;
+    private CanvasGroup videoCanvasGroup;
 
     [Header("Form Fields")]
     public TMP_InputField nameField;
@@ -57,59 +41,75 @@ public class UIManager : MonoBehaviour
     public TMP_InputField phoneField;
     public TMP_InputField emailField;
 
-    [Header("Error Texts")]
+    [Header("Error Messages")]
     public TMP_Text nameError;
-    public TMP_Text companyError;
+    public TMP_Text companyNameError;
     public TMP_Text designationError;
     public TMP_Text phoneError;
     public TMP_Text emailError;
 
-    [Header("Feedback Stars")]
+    [Header("Feedback")]
     public Button[] starButtons;
     private int selectedRating = 0;
+
+    private string formURL = "https://script.google.com/macros/s/AKfycbwatq6_fmcAwtf6BOifqzHvB_eooJWLzuPjCBatkMG0abdwDPN8aJxT_Uy2CVI1AXSq/exec";
 
     void Start()
     {
         ShowHomePanel();
         videoPlayer.loopPointReached += OnVideoFinished;
-        if (videoDisplay != null) videoDisplay.enabled = false; // Ensure hidden at start
+
+        if (videoDisplay != null)
+        {
+            videoCanvasGroup = videoDisplay.GetComponent<CanvasGroup>();
+            if (videoCanvasGroup == null)
+            {
+                videoCanvasGroup = videoDisplay.gameObject.AddComponent<CanvasGroup>();
+            }
+            videoCanvasGroup.alpha = 0f;
+            videoDisplay.enabled = false;
+        }
     }
 
     private void OnVideoFinished(VideoPlayer vp)
     {
         videoPlayer.Stop();
-        RenderTexture rt = videoPlayer.targetTexture;
-        if (rt != null)
-        {
-            RenderTexture.active = rt;
-            GL.Clear(true, true, Color.black);
-            RenderTexture.active = null;
-        }
-        if (videoDisplay != null) videoDisplay.enabled = false; // Hide after finish
+        StartCoroutine(FadeOutVideo());
         ShowVideoSelectionPanel();
     }
 
-    private void ClearFormFields()
+    private IEnumerator FadeInVideo()
     {
-        nameField.text = "";
-        companyNameField.text = "";
-        designationField.text = "";
-        phoneField.text = "";
-        emailField.text = "";
-
-        nameError.text = "";
-        companyError.text = "";
-        designationError.text = "";
-        phoneError.text = "";
-        emailError.text = "";
+        if (videoDisplay != null)
+        {
+            videoDisplay.enabled = true;
+            videoCanvasGroup.alpha = 0f;
+            float duration = 0.5f;
+            float t = 0;
+            while (t < duration)
+            {
+                videoCanvasGroup.alpha = Mathf.Lerp(0f, 1f, t / duration);
+                t += Time.deltaTime;
+                yield return null;
+            }
+            videoCanvasGroup.alpha = 1f;
+        }
     }
 
-    private void ClearFeedbackRating()
+    private IEnumerator FadeOutVideo()
     {
-        selectedRating = 0;
-        foreach (Button star in starButtons)
+        if (videoDisplay != null)
         {
-            star.GetComponent<Image>().color = Color.white;
+            float duration = 0.5f;
+            float t = 0;
+            while (t < duration)
+            {
+                videoCanvasGroup.alpha = Mathf.Lerp(1f, 0f, t / duration);
+                t += Time.deltaTime;
+                yield return null;
+            }
+            videoCanvasGroup.alpha = 0f;
+            videoDisplay.enabled = false;
         }
     }
 
@@ -123,215 +123,207 @@ public class UIManager : MonoBehaviour
         feedbackPanel.SetActive(false);
     }
 
-    public void ShowHomePanel()
+    public void AnimatePanelIn(GameObject panel)
     {
         SetAllPanelsInactive();
-        homePanel.SetActive(true);
-        videoPlayer.Stop();
-        if (videoDisplay != null) videoDisplay.enabled = false;
+        panel.SetActive(true);
+    }
+
+    public void ShowHomePanel()
+    {
+        AnimatePanelIn(homePanel);
     }
 
     public void ShowVideoSelectionPanel()
     {
-        SetAllPanelsInactive();
-        videoSelectionPanel.SetActive(true);
-        videoPlayer.Stop();
-        if (videoDisplay != null) videoDisplay.enabled = false;
+        AnimatePanelIn(videoSelectionPanel);
     }
 
     public void ShowFormPanel()
     {
-        SetAllPanelsInactive();
         ClearFormFields();
-        formPanel.SetActive(true);
-        videoPlayer.Stop();
-        if (videoDisplay != null) videoDisplay.enabled = false;
+        AnimatePanelIn(formPanel);
     }
 
     public void ShowThankYouPanel()
     {
-        SetAllPanelsInactive();
-        thankYouPanel.SetActive(true);
-        if (videoDisplay != null) videoDisplay.enabled = false;
+        AnimatePanelIn(thankYouPanel);
     }
 
     public void ShowAreYouReadyPanel()
     {
-        SetAllPanelsInactive();
-        areYouReadyPanel.SetActive(true);
-        if (videoDisplay != null) videoDisplay.enabled = false;
+        AnimatePanelIn(areYouReadyPanel);
     }
 
     public void ShowFeedbackPanel()
     {
-        SetAllPanelsInactive();
-        ClearFeedbackRating();
-        feedbackPanel.SetActive(true);
-        if (videoDisplay != null) videoDisplay.enabled = false;
+        selectedRating = 0;
+        foreach (Button star in starButtons)
+        {
+            star.image.color = Color.white;
+        }
+        AnimatePanelIn(feedbackPanel);
     }
 
-    public void OnHomeButton_Click() => ShowHomePanel();
-
-    public void OnExploreButton_Click() => ShowVideoSelectionPanel();
+    public void OnExploreButton_Click()
+    {
+        ShowVideoSelectionPanel();
+    }
 
     public void OnVideoButton_Click(int index)
     {
         if (index >= 0 && index < videoClips.Length)
         {
-            if (videoDisplay != null) videoDisplay.enabled = true;
             videoPlayer.clip = videoClips[index];
             videoPlayer.Play();
+            StartCoroutine(FadeInVideo());
         }
     }
 
-    public void OnGetInTouch_Click() => ShowAreYouReadyPanel();
+    public void OnGetInTouch_Click()
+    {
+        ShowAreYouReadyPanel();
+    }
 
-    public void OnYesLetsDoItNow_Click() => ShowFormPanel();
+    public void OnYesLetsDoItNow_Click()
+    {
+        ShowFormPanel();
+    }
 
-    public void OnMaybeLater_Click() => ShowFeedbackPanel();
+    public void OnMaybeLater_Click()
+    {
+        ShowFeedbackPanel();
+    }
 
     public void OnSubmitForm_Click()
     {
-        if (ValidateForm())
+        if (!ValidateForm()) return;
+
+        FormData data = new FormData
         {
-            SaveFormData();
-            ShowThankYouPanel();
-        }
-        else
+            name = nameField.text,
+            companyName = companyNameField.text,
+            designation = designationField.text,
+            phoneNumber = phoneField.text,
+            email = emailField.text
+        };
+
+        StartCoroutine(PostFormData(data));
+        ShowThankYouPanel();
+    }
+
+    public void OnThankYouHome_Click()
+    {
+        ShowHomePanel();
+    }
+
+    public void OnStarClicked(int starNumber)
+    {
+        selectedRating = starNumber;
+        for (int i = 0; i < starButtons.Length; i++)
         {
-            Debug.LogWarning("Form validation failed.");
+            starButtons[i].image.color = (i < starNumber) ? Color.yellow : Color.white;
         }
     }
 
-    public void OnThankYouHome_Click() => ShowHomePanel();
+    public void OnSubmitFeedback_Click()
+    {
+        if (selectedRating > 0)
+        {
+            StartCoroutine(PostFeedbackData(selectedRating));
+            ShowThankYouPanel();
+        }
+    }
+
+    private void ClearFormFields()
+    {
+        nameField.text = "";
+        companyNameField.text = "";
+        designationField.text = "";
+        phoneField.text = "";
+        emailField.text = "";
+        ClearAllErrors();
+    }
+
+    private void ClearAllErrors()
+    {
+        nameError.text = "";
+        companyNameError.text = "";
+        designationError.text = "";
+        phoneError.text = "";
+        emailError.text = "";
+    }
+
+    private void ShowTemporaryError(TMP_Text errorField, string message)
+    {
+        errorField.text = message;
+        errorField.color = Color.red;
+        errorField.fontSize = 24;
+        errorField.fontStyle = FontStyles.Normal;
+        StartCoroutine(ClearAfterDelay(errorField, 2f));
+    }
+
+    IEnumerator ClearAfterDelay(TMP_Text errorField, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        errorField.text = "";
+    }
 
     private bool ValidateForm()
     {
         bool isValid = true;
+        ClearAllErrors();
 
-        string name = nameField.text.Trim();
-        string company = companyNameField.text.Trim();
-        string designation = designationField.text.Trim();
-        string phone = phoneField.text.Trim();
-        string email = emailField.text.Trim();
-
-        nameError.text = companyError.text = designationError.text = phoneError.text = emailError.text = "";
-
-        Color errorColor = Color.red;
-
-        if (string.IsNullOrWhiteSpace(name))
+        if (string.IsNullOrWhiteSpace(nameField.text))
         {
-            nameError.text = "Please enter your name.";
-            nameError.color = errorColor;
-            StartCoroutine(ClearTextAfterDelay(nameError));
+            ShowTemporaryError(nameError, "Please enter your name");
             isValid = false;
         }
-
-        if (string.IsNullOrWhiteSpace(company))
+        if (string.IsNullOrWhiteSpace(companyNameField.text))
         {
-            companyError.text = "Please enter your company.";
-            companyError.color = errorColor;
-            StartCoroutine(ClearTextAfterDelay(companyError));
+            ShowTemporaryError(companyNameError, "Enter your company name");
             isValid = false;
         }
-
-        if (string.IsNullOrWhiteSpace(designation))
+        if (string.IsNullOrWhiteSpace(designationField.text))
         {
-            designationError.text = "Please enter your designation.";
-            designationError.color = errorColor;
-            StartCoroutine(ClearTextAfterDelay(designationError));
+            ShowTemporaryError(designationError, "Enter your designation");
             isValid = false;
         }
-
-        if (!Regex.IsMatch(phone, @"^\d{7,15}$"))
+        if (!Regex.IsMatch(phoneField.text, "^\\d{10}$"))
         {
-            phoneError.text = "Phone must be 7–15 digits.";
-            phoneError.color = errorColor;
-            StartCoroutine(ClearTextAfterDelay(phoneError));
+            ShowTemporaryError(phoneError, "Enter a valid 10-digit phone");
             isValid = false;
         }
-
-        if (!Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+        if (!Regex.IsMatch(emailField.text, "^[^@]+@[^@]+\\.[^@]+$"))
         {
-            emailError.text = "Invalid email format.";
-            emailError.color = errorColor;
-            StartCoroutine(ClearTextAfterDelay(emailError));
+            ShowTemporaryError(emailError, "Enter a valid email");
             isValid = false;
         }
 
         return isValid;
     }
 
-    private IEnumerator ClearTextAfterDelay(TMP_Text errorField)
+    IEnumerator PostFormData(FormData data)
     {
-        yield return new WaitForSeconds(2f);
-        if (errorField != null) errorField.text = "";
+        string jsonData = JsonUtility.ToJson(data);
+        UnityWebRequest www = new UnityWebRequest(formURL, "POST");
+        byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
+        www.uploadHandler = new UploadHandlerRaw(bodyRaw);
+        www.downloadHandler = new DownloadHandlerBuffer();
+        www.SetRequestHeader("Content-Type", "application/json");
+        yield return www.SendWebRequest();
+        Debug.Log("Form posted: " + www.downloadHandler.text);
     }
 
-    private void SaveFormData()
+    IEnumerator PostFeedbackData(int rating)
     {
-        FormData newData = new FormData
-        {
-            name = nameField.text.Trim(),
-            companyName = companyNameField.text.Trim(),
-            designation = designationField.text.Trim(),
-            phoneNumber = phoneField.text.Trim(),
-            email = emailField.text.Trim()
-        };
-
-        string path = Path.Combine(Application.streamingAssetsPath, "formdata.json");
-        FormDataList dataList = new FormDataList();
-
-        if (File.Exists(path))
-        {
-            string existingJson = File.ReadAllText(path);
-            dataList = JsonUtility.FromJson<FormDataList>(existingJson);
-        }
-
-        dataList.forms.Add(newData);
-        string json = JsonUtility.ToJson(dataList, true);
-        File.WriteAllText(path, json);
-        Debug.Log("Form data saved to: " + path);
-    }
-
-    public void OnStarClicked(int rating)
-    {
-        selectedRating = rating;
-
-        for (int i = 0; i < starButtons.Length; i++)
-        {
-            Color color = (i < selectedRating) ? Color.yellow : Color.white;
-            starButtons[i].GetComponent<Image>().color = color;
-        }
-    }
-
-    public void OnSubmitFeedback_Click()
-    {
-        if (selectedRating < 1 || selectedRating > 5)
-        {
-            Debug.LogWarning("Please select a rating from 1 to 5.");
-            return;
-        }
-
-        SaveFeedbackRating(selectedRating);
-        ShowThankYouPanel();
-    }
-
-    private void SaveFeedbackRating(int rating)
-    {
-        FeedbackData newFeedback = new FeedbackData { starRating = rating };
-        string path = Path.Combine(Application.streamingAssetsPath, "feedback.json");
-        FeedbackList list = new FeedbackList();
-
-        if (File.Exists(path))
-        {
-            string existing = File.ReadAllText(path);
-            list = JsonUtility.FromJson<FeedbackList>(existing);
-        }
-
-        list.feedbacks.Add(newFeedback);
-        string json = JsonUtility.ToJson(list, true);
-        File.WriteAllText(path, json);
-        Debug.Log("⭐ Feedback saved: " + rating + " stars → " + path);
+        string jsonData = "{\"starRating\":" + rating + "}";
+        UnityWebRequest www = new UnityWebRequest(formURL, "POST");
+        byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
+        www.uploadHandler = new UploadHandlerRaw(bodyRaw);
+        www.downloadHandler = new DownloadHandlerBuffer();
+        www.SetRequestHeader("Content-Type", "application/json");
+        yield return www.SendWebRequest();
+        Debug.Log("Feedback posted: " + www.downloadHandler.text);
     }
 }
