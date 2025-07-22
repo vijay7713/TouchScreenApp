@@ -258,7 +258,7 @@ public class UIManager : MonoBehaviour
     {
         errorField.text = message;
         errorField.color = Color.red;
-        errorField.fontSize = 24;
+        errorField.fontSize = 60;
         errorField.fontStyle = FontStyles.Normal;
         StartCoroutine(ClearAfterDelay(errorField, 2f));
     }
