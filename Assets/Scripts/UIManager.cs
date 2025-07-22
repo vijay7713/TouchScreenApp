@@ -303,9 +303,16 @@ public class UIManager : MonoBehaviour
         return isValid;
     }
 
+    // ✅ Save form locally + send online
     IEnumerator PostFormData(FormData data)
     {
         string jsonData = JsonUtility.ToJson(data);
+
+        // Save locally
+        string path = Path.Combine(Application.streamingAssetsPath, "formdata.json");
+        File.AppendAllText(path, jsonData + ",\n");
+
+        // Send to Google Sheet
         UnityWebRequest www = new UnityWebRequest(formURL, "POST");
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
         www.uploadHandler = new UploadHandlerRaw(bodyRaw);
@@ -315,9 +322,16 @@ public class UIManager : MonoBehaviour
         Debug.Log("Form posted: " + www.downloadHandler.text);
     }
 
+    // ✅ Save feedback locally + send online
     IEnumerator PostFeedbackData(int rating)
     {
         string jsonData = "{\"starRating\":" + rating + "}";
+
+        // Save locally
+        string path = Path.Combine(Application.streamingAssetsPath, "feedback.json");
+        File.AppendAllText(path, jsonData + ",\n");
+
+        // Send to Google Sheet
         UnityWebRequest www = new UnityWebRequest(formURL, "POST");
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
         www.uploadHandler = new UploadHandlerRaw(bodyRaw);
