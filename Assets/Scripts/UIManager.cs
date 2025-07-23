@@ -33,6 +33,7 @@ public class UIManager : MonoBehaviour
     public VideoClip[] videoClips;
     public RawImage videoDisplay;
     private CanvasGroup videoCanvasGroup;
+    public GameObject closeButton; // ✅ New close button
 
     [Header("Form Fields")]
     public TMP_InputField nameField;
@@ -69,6 +70,11 @@ public class UIManager : MonoBehaviour
             videoCanvasGroup.alpha = 0f;
             videoDisplay.enabled = false;
         }
+
+        if (closeButton != null)
+        {
+            closeButton.SetActive(false); // Hide close button initially
+        }
     }
 
     private void OnVideoFinished(VideoPlayer vp)
@@ -76,6 +82,9 @@ public class UIManager : MonoBehaviour
         videoPlayer.Stop();
         StartCoroutine(FadeOutVideo());
         ShowVideoSelectionPanel();
+
+        if (closeButton != null)
+            closeButton.SetActive(false);
     }
 
     private IEnumerator FadeInVideo()
@@ -177,7 +186,20 @@ public class UIManager : MonoBehaviour
             videoPlayer.clip = videoClips[index];
             videoPlayer.Play();
             StartCoroutine(FadeInVideo());
+
+            if (closeButton != null)
+                closeButton.SetActive(true); // ✅ Show close button while playing
         }
+    }
+
+    public void OnCloseVideo_Click() // ✅ Called from UI Close Button
+    {
+        videoPlayer.Stop();
+        StartCoroutine(FadeOutVideo());
+        ShowVideoSelectionPanel();
+
+        if (closeButton != null)
+            closeButton.SetActive(false); // ✅ Hide close button
     }
 
     public void OnGetInTouch_Click()
@@ -303,16 +325,12 @@ public class UIManager : MonoBehaviour
         return isValid;
     }
 
-    // ✅ Save form locally + send online
     IEnumerator PostFormData(FormData data)
     {
         string jsonData = JsonUtility.ToJson(data);
-
-        // Save locally
         string path = Path.Combine(Application.streamingAssetsPath, "formdata.json");
         File.AppendAllText(path, jsonData + ",\n");
 
-        // Send to Google Sheet
         UnityWebRequest www = new UnityWebRequest(formURL, "POST");
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
         www.uploadHandler = new UploadHandlerRaw(bodyRaw);
@@ -322,16 +340,12 @@ public class UIManager : MonoBehaviour
         Debug.Log("Form posted: " + www.downloadHandler.text);
     }
 
-    // ✅ Save feedback locally + send online
     IEnumerator PostFeedbackData(int rating)
     {
         string jsonData = "{\"starRating\":" + rating + "}";
-
-        // Save locally
         string path = Path.Combine(Application.streamingAssetsPath, "feedback.json");
         File.AppendAllText(path, jsonData + ",\n");
 
-        // Send to Google Sheet
         UnityWebRequest www = new UnityWebRequest(formURL, "POST");
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
         www.uploadHandler = new UploadHandlerRaw(bodyRaw);
