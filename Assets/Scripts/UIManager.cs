@@ -36,7 +36,8 @@ public class UIManager : MonoBehaviour
     public TMP_Text phoneError;
     public TMP_Text emailError;
 
-    private string formURL = "https://script.google.com/macros/s/AKfycbx-MJ9MvU0ZkFlP2Y_LNxbgUgx9Gg98gj_E9KlgQUZWfZYCDt79kDC8DkBQI0uW2DcGjA/exec";
+    // ✅ Final working Web App URL (new deployment)
+    private string formURL = "https://script.google.com/macros/s/AKfycbwwhnC5ulr7G6Hjqb9Fv_M69Aw-H0BSprTr0L8Z6-eKq3Tjf3ThbYkoV5KD75o53koz/exec";
 
     void Start()
     {
@@ -119,8 +120,8 @@ public class UIManager : MonoBehaviour
     {
         errorField.text = message;
         errorField.color = Color.red;
-        errorField.fontSize = 60; // original size as requested
-        errorField.fontStyle = FontStyles.Normal; // not bold
+        errorField.fontSize = 60;
+        errorField.fontStyle = FontStyles.Normal;
         StartCoroutine(ClearAfterDelay(errorField, 2f));
     }
 
@@ -172,7 +173,16 @@ public class UIManager : MonoBehaviour
         www.uploadHandler = new UploadHandlerRaw(bodyRaw);
         www.downloadHandler = new DownloadHandlerBuffer();
         www.SetRequestHeader("Content-Type", "application/json");
+
         yield return www.SendWebRequest();
-        Debug.Log("Form posted: " + www.downloadHandler.text);
+
+        if (www.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError("Form POST failed: " + www.error + " | Response: " + www.downloadHandler.text);
+        }
+        else
+        {
+            Debug.Log("Form posted successfully. Response: " + www.downloadHandler.text);
+        }
     }
 }
