@@ -53,7 +53,8 @@ public class UIManager : MonoBehaviour
     public Button[] starButtons;
     private int selectedRating = 0;
 
-    private string formURL = "https://script.google.com/macros/s/AKfycbwatq6_fmcAwtf6BOifqzHvB_eooJWLzuPjCBatkMG0abdwDPN8aJxT_Uy2CVI1AXSq/exec";
+    // ✅ Updated Web App URL for Touch Screen app
+    private string formURL = "https://script.google.com/macros/s/AKfycbyNwl0b4wpchBwHl_JenrNkQ4xGxcwlMUNV7gwBCAiLVWgmK0Z62D8e0Pg7Hwe-aQo6/exec";
 
     void Start()
     {
