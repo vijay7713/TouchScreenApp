@@ -36,7 +36,7 @@ public class UIManager : MonoBehaviour
     public TMP_Text phoneError;
     public TMP_Text emailError;
 
-    // ✅ Final working Web App URL (new deployment)
+    // ✅ Final working Web App URL
     private string formURL = "https://script.google.com/macros/s/AKfycbwwhnC5ulr7G6Hjqb9Fv_M69Aw-H0BSprTr0L8Z6-eKq3Tjf3ThbYkoV5KD75o53koz/exec";
 
     void Start()
@@ -83,7 +83,7 @@ public class UIManager : MonoBehaviour
         {
             name = nameField.text,
             companyName = companyNameField.text,
-            designation = designationField.text,
+            designation = designationField.text,   // optional (can be blank)
             phoneNumber = phoneField.text,
             email = emailField.text
         };
@@ -146,11 +146,9 @@ public class UIManager : MonoBehaviour
             ShowTemporaryError(companyNameError, "Enter your company name");
             isValid = false;
         }
-        if (string.IsNullOrWhiteSpace(designationField.text))
-        {
-            ShowTemporaryError(designationError, "Enter your designation");
-            isValid = false;
-        }
+
+        // ❌ Designation check removed (optional now)
+
         if (!Regex.IsMatch(phoneField.text, "^\\d{10}$"))
         {
             ShowTemporaryError(phoneError, "Enter a valid 10-digit phone");
